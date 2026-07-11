@@ -1,0 +1,12 @@
+{
+  "name": "creedz-nft-waitlist",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Single page CREEDZ NFT waitlist with gated social quests.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
