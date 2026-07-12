@@ -73,6 +73,37 @@ function hasWalletValue(wallet) {
   return wallet.trim().length >= 6 && wallet.trim().length <= 120;
 }
 
+async function saveWaitlistEntry(entry) {
+  if (process.env.WAITLIST_WEBHOOK_URL) {
+    const response = await fetch(process.env.WAITLIST_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry)
+    });
+
+    if (!response.ok) {
+      throw new Error("Wallet storage webhook rejected the request.");
+    }
+
+    return false;
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error("Connect WAITLIST_WEBHOOK_URL before collecting wallets on Vercel.");
+  }
+
+  ensureDataFile();
+  const entries = JSON.parse(fs.readFileSync(WAITLIST_FILE, "utf8"));
+  const existing = entries.find(item => item.wallet.toLowerCase() === entry.wallet.toLowerCase());
+
+  if (!existing) {
+    entries.push(entry);
+    fs.writeFileSync(WAITLIST_FILE, `${JSON.stringify(entries, null, 2)}\n`);
+  }
+
+  return Boolean(existing);
+}
+
 async function handleApi(req, res) {
   try {
     if (req.method === "GET" && req.url === "/api/session") {
@@ -94,6 +125,7 @@ async function handleApi(req, res) {
       }
 
       if (!session.completed.includes(quest)) session.completed.push(quest);
+
       return sendJson(res, 200, {
         ok: true,
         sessionId: session.id,
@@ -103,7 +135,6 @@ async function handleApi(req, res) {
     }
 
     if (req.method === "POST" && req.url === "/api/waitlist") {
-      ensureDataFile();
       const body = await parseBody(req);
       const session = getSession(body.sessionId);
       const wallet = String(body.wallet || "").trim();
@@ -122,18 +153,12 @@ async function handleApi(req, res) {
         });
       }
 
-      const entries = JSON.parse(fs.readFileSync(WAITLIST_FILE, "utf8"));
-      const existing = entries.find(entry => entry.wallet.toLowerCase() === wallet.toLowerCase());
-
-      if (!existing) {
-        entries.push({
-          wallet,
-          sessionId: session.id,
-          quests: session.completed,
-          createdAt: new Date().toISOString()
-        });
-        fs.writeFileSync(WAITLIST_FILE, `${JSON.stringify(entries, null, 2)}\n`);
-      }
+      const existing = await saveWaitlistEntry({
+        wallet,
+        sessionId: session.id,
+        quests: session.completed,
+        createdAt: new Date().toISOString()
+      });
 
       return sendJson(res, 200, {
         ok: true,
