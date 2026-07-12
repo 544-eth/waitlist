@@ -329,6 +329,12 @@ button:disabled {
   border: 1px solid var(--line);
 }
 
+.quest-link.disabled {
+  pointer-events: none;
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .quest-actions button {
   min-height: 42px;
   background: var(--lemon);

@@ -41,6 +41,7 @@ function updateUi() {
   QUESTS.forEach((quest, index) => {
     const card = document.querySelector(`[data-quest="${quest}"].quest`);
     const button = document.querySelector(`button[data-quest="${quest}"]`);
+    const link = card.querySelector(".quest-link");
     const isDone = state.completed.includes(quest);
     const isUnlocked = index === 0 || state.completed.includes(QUESTS[index - 1]);
     const hasOpenedQuest = Boolean(state.opened[quest]);
@@ -48,6 +49,11 @@ function updateUi() {
     card.classList.toggle("done", isDone);
     card.classList.toggle("active", isUnlocked && !isDone);
     card.classList.toggle("locked", !isUnlocked);
+
+    link.classList.toggle("disabled", !isUnlocked || isDone);
+    link.setAttribute("aria-disabled", String(!isUnlocked || isDone));
+    link.tabIndex = !isUnlocked || isDone ? -1 : 0;
+
     button.disabled = !isUnlocked || isDone || !hasOpenedQuest;
     button.textContent = isDone ? "Complete" : "Done";
   });
@@ -96,9 +102,14 @@ document.querySelectorAll("[data-action='verify']").forEach(button => {
 });
 
 document.querySelectorAll(".quest-link").forEach(link => {
-  link.addEventListener("click", () => {
+  link.addEventListener("click", event => {
     const card = link.closest(".quest");
     if (!card) return;
+
+    if (card.classList.contains("locked") || card.classList.contains("done")) {
+      event.preventDefault();
+      return;
+    }
 
     const quest = card.dataset.quest;
     state.opened[quest] = true;
