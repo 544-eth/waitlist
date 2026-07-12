@@ -118,7 +118,7 @@ async function handleApi(req, res) {
       if (!hasWalletValue(wallet)) {
         return sendJson(res, 422, {
           ok: false,
-          message: "Enter your wallet address."
+          message: "Enter your Ethereum wallet address."
         });
       }
 
