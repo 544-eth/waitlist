@@ -2,7 +2,8 @@ const QUESTS = ["follow", "like", "retweet", "telegram"];
 
 const state = {
   sessionId: null,
-  completed: []
+  completed: [],
+  opened: {}
 };
 
 const loader = document.querySelector("#loader");
@@ -42,11 +43,12 @@ function updateUi() {
     const button = document.querySelector(`button[data-quest="${quest}"]`);
     const isDone = state.completed.includes(quest);
     const isUnlocked = index === 0 || state.completed.includes(QUESTS[index - 1]);
+    const hasOpenedQuest = Boolean(state.opened[quest]);
 
     card.classList.toggle("done", isDone);
     card.classList.toggle("active", isUnlocked && !isDone);
     card.classList.toggle("locked", !isUnlocked);
-    button.disabled = !isUnlocked || isDone;
+    button.disabled = !isUnlocked || isDone || !hasOpenedQuest;
     button.textContent = isDone ? "Complete" : "Done";
   });
 
@@ -78,7 +80,8 @@ document.querySelectorAll("[data-action='verify']").forEach(button => {
     try {
       const data = await api("/api/verify", {
         sessionId: state.sessionId,
-        quest
+        quest,
+        completed: state.completed
       });
       state.sessionId = data.sessionId;
       state.completed = data.completed;
@@ -92,6 +95,17 @@ document.querySelectorAll("[data-action='verify']").forEach(button => {
   });
 });
 
+document.querySelectorAll(".quest-link").forEach(link => {
+  link.addEventListener("click", () => {
+    const card = link.closest(".quest");
+    if (!card) return;
+
+    const quest = card.dataset.quest;
+    state.opened[quest] = true;
+    updateUi();
+  });
+});
+
 form.addEventListener("submit", async event => {
   event.preventDefault();
   formButton.disabled = true;
@@ -102,6 +116,7 @@ form.addEventListener("submit", async event => {
   try {
     const data = await api("/api/waitlist", {
       sessionId: state.sessionId,
+      completed: state.completed,
       wallet: walletInput.value
     });
     formMessage.textContent = data.message;
