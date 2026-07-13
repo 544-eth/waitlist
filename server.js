@@ -78,7 +78,10 @@ async function saveWaitlistEntry(entry) {
     const response = await fetch(process.env.WAITLIST_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(entry)
+      body: JSON.stringify({
+        ...entry,
+        secret: process.env.WAITLIST_WEBHOOK_SECRET
+      })
     });
 
     if (!response.ok) {
@@ -93,6 +96,7 @@ async function saveWaitlistEntry(entry) {
   }
 
   ensureDataFile();
+
   const entries = JSON.parse(fs.readFileSync(WAITLIST_FILE, "utf8"));
   const existing = entries.find(item => item.wallet.toLowerCase() === entry.wallet.toLowerCase());
 
@@ -108,7 +112,10 @@ async function handleApi(req, res) {
   try {
     if (req.method === "GET" && req.url === "/api/session") {
       const session = getSession();
-      return sendJson(res, 200, { sessionId: session.id, completed: session.completed });
+      return sendJson(res, 200, {
+        sessionId: session.id,
+        completed: session.completed
+      });
     }
 
     if (req.method === "POST" && req.url === "/api/verify") {
@@ -124,7 +131,9 @@ async function handleApi(req, res) {
         });
       }
 
-      if (!session.completed.includes(quest)) session.completed.push(quest);
+      if (!session.completed.includes(quest)) {
+        session.completed.push(quest);
+      }
 
       return sendJson(res, 200, {
         ok: true,
@@ -166,10 +175,16 @@ async function handleApi(req, res) {
       });
     }
   } catch (error) {
-    return sendJson(res, 400, { ok: false, message: error.message });
+    return sendJson(res, 400, {
+      ok: false,
+      message: error.message
+    });
   }
 
-  sendJson(res, 404, { ok: false, message: "Not found." });
+  sendJson(res, 404, {
+    ok: false,
+    message: "Not found."
+  });
 }
 
 function serveStatic(req, res) {
@@ -188,7 +203,9 @@ function serveStatic(req, res) {
     }
 
     const type = CONTENT_TYPES[path.extname(filePath)] || "application/octet-stream";
-    res.writeHead(200, { "Content-Type": type });
+    res.writeHead(200, {
+      "Content-Type": type
+    });
     res.end(content);
   });
 }
